@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/styletopsis.css">
+    <title>VS-TOPSIS Page</title>
+</head>
+
+<body>
+
+    <section class="topsis" id="topsis">
+        <h1 class="heading"> <span>VS-TOPSIS CALCULATION</span></h1>
+
+        <table class="topsis-table">
+            <thead>
+                <tr>
+                    <th>Criteria Name</th>
+                    <th>Value</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="criteriaTableBody">
+                <!-- Baris Kriteria -->
+                <tr>
+                    <td><input type="text" class="criteria-name" placeholder="Criteria 1"></td>
+                    <td><input type="number" class="criteria-value" min="0" step="0.1"></td>
+                    <td><button onclick="deleteCriteria(this)">Delete</button></td>
+                </tr>
+                <!-- Additional rows for criteria will be dynamically added here -->
+            </tbody>
+        </table>
+
+        <button onclick="addCriteria()">Add Criteria</button>
+
+        <hr> <!-- Add a horizontal line to separate criteria and alternatives -->
+
+        <table class="topsis-table">
+            <thead>
+                <tr id="alternativeHeaders">
+                    <th>Alternative Name</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="alternativeTableBody">
+                <!-- Alternative rows will be dynamically added here -->
+            </tbody>
+        </table>
+
+        <button onclick="addAlternative()">Add Alternative</button>
+
+        <button onclick="calculateVSTOPSIS()">Calculate VS-TOPSIS</button>
+        <button onclick="backToMenu()">Back to Menu</button>
+
+        <div id="result">
+            <h2>VS-TOPSIS Result</h2>
+            <table class="topsis-result-table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Alternative</th>
+                        <th>Score</th>
+                    </tr>
+                </thead>
+                <tbody id="topsisResultTableBody">
+                    <!-- Hasil perhitungan VS-TOPSIS akan ditampilkan di sini -->
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <script>
+        function addCriteria() {
+            var criteriaTableBody = document.getElementById('criteriaTableBody');
+
+            // Add a new row for criteria
+            var newRow = criteriaTableBody.insertRow();
+            var cell1 = newRow.insertCell(0);
+            var cell2 = newRow.insertCell(1);
+            var cell3 = newRow.insertCell(2);
+
+            // Populate cells with input elements
+            var criteriaCount = criteriaTableBody.getElementsByTagName('tr').length;
+            cell1.innerHTML = '<input type="text" class="criteria-name" placeholder="Criteria ' + criteriaCount + '">';
+            cell2.innerHTML = '<input type="number" class="criteria-value" min="0" step="0.1">';
+            cell3.innerHTML = '<button onclick="deleteCriteria(this)">Delete</button>';
+        }
+
+        function addAlternative() {
+            var alternativeTableBody = document.getElementById('alternativeTableBody');
+
+            // Add a new row for alternatives
+            var newRow = alternativeTableBody.insertRow();
+            var cell1 = newRow.insertCell(0);
+
+            // Add an input field for alternative name
+            cell1.innerHTML = '<input type="text" class="alternative-name" placeholder="Alternative ' + (alternativeTableBody.getElementsByTagName('tr').length + 1) + '">';
+
+            // Populate cells with input elements for each criterion
+            var criteriaValues = document.getElementsByClassName('criteria-value');
+            for (var i = 0; i < criteriaValues.length; i++) {
+                var cell = newRow.insertCell(i + 1);
+                cell.innerHTML = '<input type="number" class="alternative-value" min="0" step="0.1">';
+            }
+
+            var cellLast = newRow.insertCell(criteriaValues.length + 1);
+            cellLast.innerHTML = '<button onclick="deleteAlternative(this)">Delete</button>';
+
+            updateAlternativeHeaders(); // Update the alternative headers when an alternative is added
+        }
+
+        function deleteCriteria(button) {
+            var row = button.parentNode.parentNode;
+            row.parentNode.removeChild(row);
+
+            updateAlternativeColumns(); // Update the alternative columns when criteria are deleted
+        }
+
+        function deleteAlternative(button) {
+            var row = button.parentNode.parentNode;
+            row.parentNode.removeChild(row);
+
+            updateAlternativeHeaders(); // Update the alternative headers when an alternative is deleted
+        }
+
+        function updateAlternativeColumns() {
+            var alternativeTableBody = document.getElementById('alternativeTableBody');
+            var alternativeRows = alternativeTableBody.getElementsByTagName('tr');
+
+            for (var i = 0; alternativeRows && i < alternativeRows.length; i++) {
+                var alternativeRow = alternativeRows[i];
+                var criteriaValues = document.getElementsByClassName('criteria-value');
+
+                // Remove existing value columns
+                while (alternativeRow.cells.length > 1) {
+                    alternativeRow.deleteCell(1);
+                }
+
+                // Add new value columns with headers based on the number of criteria
+                for (var j = 0; j < criteriaValues.length; j++) {
+                    var cell = alternativeRow.insertCell(j + 1);
+                    cell.innerHTML = '<input type="number" class="alternative-value" min="0" step="0.1">';
+                }
+
+                var cellLast = alternativeRow.insertCell(criteriaValues.length + 1);
+                cellLast.innerHTML = '<button onclick="deleteAlternative(this)">Delete</button>';
+            }
+
+            updateAlternativeHeaders(); // Update the alternative headers after updating columns
+        }
+
+        function updateAlternativeHeaders() {
+            var alternativeTableBody = document.getElementById('alternativeTableBody');
+            var alternativeHeaders = document.getElementById('alternativeHeaders');
+            var criteriaValues = document.getElementsByClassName('criteria-value');
+
+            // Remove existing header cells
+            while (alternativeHeaders.cells.length > 1) {
+                alternativeHeaders.deleteCell(1);
+            }
+
+            // Add new header cells based on the number of criteria
+            for (var i = 0; i < criteriaValues.length; i++) {
+                var headerCell = alternativeHeaders.insertCell(i + 1);
+                headerCell.innerHTML = '<div class="alternative-value-header">Value ' + (i + 1) + '</div>';
+            }
+
+            var actionHeaderCell = alternativeHeaders.insertCell(criteriaValues.length + 1);
+            actionHeaderCell.innerHTML = 'Action';
+        }
+        function calculateVSTOPSIS() {
+            console.log('Inside calculateVSTOPSIS');
+            
+            var criteriaNames = document.getElementsByClassName('criteria-name');
+            var criteriaValues = document.getElementsByClassName('criteria-value');
+            
+            var alternativeTableBody = document.getElementById('alternativeTableBody');
+            var alternativeRows = alternativeTableBody.getElementsByTagName('tr');
+            var topsisResultTableBody = document.getElementById('topsisResultTableBody');
+            topsisResultTableBody.innerHTML = '';
+            
+            var topsisScores = [];
+            
+            for (var i = 0; i < alternativeRows.length; i++) {
+                var alternativeRow = alternativeRows[i];
+                var alternativeName = getInputElementValue(alternativeRow.cells[0].querySelector('input'), 'Alternative ' + (i + 1));
+                console.log('Calculating score for ' + alternativeName);
+                var vsTopsisScore = calculateVSTopsisScore(criteriaNames, criteriaValues, alternativeRow);
+                console.log('Score for ' + alternativeName + ': ' + vsTopsisScore);
+                topsisScores.push({ name: alternativeName, score: vsTopsisScore });
+            }
+            
+            topsisScores.sort(function (a, b) {
+                return b.score - a.score;
+            });
+            
+            for (var i = 0; i < topsisScores.length; i++) {
+                var newRow = topsisResultTableBody.insertRow();
+                var cell1 = newRow.insertCell(0);
+                var cell2 = newRow.insertCell(1);
+                var cell3 = newRow.insertCell(2);
+                cell1.innerHTML = i + 1;
+                cell2.innerHTML = topsisScores[i].name;
+                cell3.innerHTML = isNaN(topsisScores[i].score) ? 'NaN' : topsisScores[i].score.toFixed(2);
+            }
+            
+            console.log('End of calculateVSTOPSIS');
+        }
+        
+        function calculateVSTopsisScore(criteriaNames, criteriaValues, alternativeRow) {
+            var alternativeValues = alternativeRow.getElementsByClassName('alternative-value');
+            var alternativeIndex = Array.from(alternativeRow.parentNode.children).indexOf(alternativeRow);
+            
+            var alternativeName = getInputElementValue(alternativeRow.cells[0].querySelector('input'), 'Alternative ' + (alternativeIndex + 1));
+            console.log('Calculating score for ' + alternativeName);
+            
+            var criteriaData = [];
+            for (var i = 0; i < criteriaValues.length; i++) {
+                var criteriaName = getInputElementValue(criteriaNames[i], 'Criteria ' + (i + 1));
+                var criteriaValue = parseFloat(getInputElementValue(alternativeValues[i], 0));
+                criteriaData.push({ name: criteriaName, value: criteriaValue });
+            }        
+        
+            // Calculate the min-max values for each criterion
+            var minMaxValues = criteriaData.reduce(function (result, criteria) {
+                if (!result.minValues) result.minValues = Array(criteriaData.length).fill(Number.MAX_VALUE);
+                if (!result.maxValues) result.maxValues = Array(criteriaData.length).fill(Number.MIN_VALUE);
+        
+                var alternativeValue = parseFloat(alternativeValues[criteriaData.indexOf(criteria)].value);
+        
+                result.minValues[criteriaData.indexOf(criteria)] = Math.min(result.minValues[criteriaData.indexOf(criteria)], alternativeValue);
+                result.maxValues[criteriaData.indexOf(criteria)] = Math.max(result.maxValues[criteriaData.indexOf(criteria)], alternativeValue);
+        
+                return result;
+            }, {});
+            // Calculate the S values for each criterion
+            var sValues = criteriaData.map(function (criteria, criteriaIndex) {
+                var alternativeValue = parseFloat(alternativeValues[criteriaIndex].value);
+                var q = criteria.value / (criteria.value + 1);
+                var s = Math.abs(alternativeValue - minMaxValues.minValues[criteriaIndex]) / (Math.abs(alternativeValue - minMaxValues.minValues[criteriaIndex]) + Math.abs(alternativeValue - minMaxValues.maxValues[criteriaIndex])) * q;
+
+                return s;
+            });
+
+            // Calculate the R values for each criterion
+            var rValues = sValues.map(function (s) {
+                return 0.5 * s / sValues.reduce(function (sum, value) {
+                    return sum + value;
+                }, 0);
+            });
+
+            // Calculate the Q values for each alternative
+            var qValues = rValues.map(function (r, rIndex) {
+                return r * rValues.reduce(function (sum, rValue, i) {
+                    return i !== rIndex ? sum + rValue : sum;
+                }, 0);
+            });
+
+            // Calculate the VS-TOPSIS score for the alternative
+            var vsTopsisScore = qValues.reduce(function (sum, q) {
+                return sum + q;
+            }, 0);
+
+            return vsTopsisScore;
+        }
+
+        function getInputElementValue(inputElement, defaultValue) {
+            return inputElement ? inputElement.value : defaultValue;
+        }
+
+        function backToMenu() {
+            // Navigasi kembali ke bagian Menu di halaman index.html
+            window.location.href = 'index.html#menu';
+        }
+    </script>
+
+</body>
+
+</html>

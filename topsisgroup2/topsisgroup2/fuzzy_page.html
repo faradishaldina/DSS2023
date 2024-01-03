@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/stylefuzzy.css">
+    <title>Fuzzy Page</title>
+</head>
+
+<body>
+
+    <section class="fuzzy" id="fuzzy">
+        <h1 class="heading"> <span>Fuzzy Calculation</span></h1>
+
+        <table class="fuzzy-table">
+            <thead>
+                <tr>
+                    <th>Criteria Name</th>
+                    <th>Value</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="criteriaTableBody">
+                <tr>
+                    <td><input type="text" class="criteria-name" placeholder="Criteria 1"></td>
+                    <td><input type="number" class="criteria-value" min="0" step="0.1"></td>
+                    <td><button onclick="deleteCriteria(this)">Delete</button></td>
+                </tr>
+                <!-- Additional rows for criteria will be dynamically added here -->
+            </tbody>
+        </table>
+
+        <button onclick="addCriteria()">Add Criteria</button>
+
+        <hr> <!-- Add a horizontal line to separate criteria and alternatives -->
+
+        <table class="fuzzy-table">
+            <thead>
+                <tr id="alternativeHeaders">
+                    <th>Alternative Name</th>
+                    <!-- Alternative value columns will be dynamically added here -->
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="alternativeTableBody">
+                <!-- Alternative rows will be dynamically added here -->
+            </tbody>
+        </table>
+
+        <button onclick="addAlternative()">Add Alternative</button>
+
+        <button onclick="calculateFuzzy()">Calculate Fuzzy</button>
+        <button onclick="backToMenu()">Back to Menu</button>
+
+        <div id="result">
+            <h2>Changed Rankings</h2>
+            <table id="rankingTable">
+                <thead>
+                    <tr>
+                        <th>Ranking</th>
+                        <th>Alternative Name</th>
+                        <th>Fuzzy Value</th>
+                    </tr>
+                </thead>
+                <tbody id="rankingTableBody">
+                    <!-- Rankings will be dynamically added here -->
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <script>
+        function addCriteria() {
+            var criteriaTableBody = document.getElementById('criteriaTableBody');
+
+            // Add a new row for criteria
+            var newRow = criteriaTableBody.insertRow();
+            var cell1 = newRow.insertCell(0);
+            var cell2 = newRow.insertCell(1);
+            var cell3 = newRow.insertCell(2);
+
+            // Populate cells with input elements
+            var criteriaCount = criteriaTableBody.getElementsByTagName('tr').length;
+            cell1.innerHTML = '<input type="text" class="criteria-name" placeholder="Criteria ' + criteriaCount + '">';
+            cell2.innerHTML = '<input type="number" class="criteria-value" min="0" step="0.1">';
+            cell3.innerHTML = '<button onclick="deleteCriteria(this)">Delete</button>';
+
+            updateAlternativeColumns(); // Update the alternative columns when criteria are added
+        }
+
+        function addAlternative() {
+            var alternativeTableBody = document.getElementById('alternativeTableBody');
+
+            // Add a new row for alternatives
+            var newRow = alternativeTableBody.insertRow();
+            var cell1 = newRow.insertCell(0);
+            var cell2 = newRow.insertCell(1);
+
+            // Populate cells with input elements for each criterion and alternative name
+            var criteriaValues = document.getElementsByClassName('criteria-value');
+            cell1.innerHTML = '<input type="text" class="alternative-name" placeholder="Alternative ' + (alternativeTableBody.rows.length + 1) + '">';
+            for (var i = 0; i < criteriaValues.length; i++) {
+                var cell = newRow.insertCell(i + 2);
+                cell.innerHTML = '<input type="number" class="alternative-value" min="0" step="0.1">';
+            }
+
+            var cellLast = newRow.insertCell(criteriaValues.length + 2);
+            cellLast.innerHTML = '<button onclick="deleteAlternative(this)">Delete</button>';
+
+            updateAlternativeHeaders(); // Update the alternative headers when an alternative is added
+        }
+
+        function deleteCriteria(button) {
+            var row = button.parentNode.parentNode;
+            row.parentNode.removeChild(row);
+
+            updateAlternativeColumns(); // Update the alternative columns when criteria are deleted
+        }
+
+        function deleteAlternative(button) {
+            var row = button.parentNode.parentNode;
+            row.parentNode.removeChild(row);
+        }
+        function updateAlternativeColumns() {
+            var alternativeTableBody = document.getElementById('alternativeTableBody');
+            var alternativeRows = alternativeTableBody.getElementsByTagName('tr');
+    
+            for (var i = 0; i < alternativeRows.length; i++) {
+                var alternativeRow = alternativeRows[i];
+                var criteriaValues = document.getElementsByClassName('criteria-value');
+    
+                // Remove existing value columns
+                while (alternativeRow.cells.length > 1) {
+                    alternativeRow.deleteCell(1);
+                }
+    
+                // Add new value columns with headers based on the number of criteria
+                for (var j = 0; j < criteriaValues.length; j++) {
+                    var cell = alternativeRow.insertCell(j + 1);
+                    cell.innerHTML = '<input type="number" class="alternative-value" min="0" step="0.1">';
+                }
+    
+                var cellLast = alternativeRow.insertCell(criteriaValues.length + 1);
+                cellLast.innerHTML = '<button onclick="deleteAlternative(this)">Delete</button>';
+            }
+        }
+        function updateAlternativeHeaders() {
+            var alternativeTableBody = document.getElementById('alternativeTableBody');
+            var alternativeHeaders = document.getElementById('alternativeHeaders');
+            var criteriaValues = document.getElementsByClassName('criteria-value');
+    
+            // Remove existing header cells
+            while (alternativeHeaders.cells.length > 1) {
+                alternativeHeaders.deleteCell(1);
+            }
+    
+            // Add new header cells based on the number of criteria
+            for (var i = 0; i < criteriaValues.length; i++) {
+                var headerCell = alternativeHeaders.insertCell(i + 1);
+                headerCell.innerHTML = '<div class="alternative-value-header">Value ' + (i + 1) + '</div>';
+            }
+    
+            var actionHeaderCell = alternativeHeaders.insertCell(criteriaValues.length + 1);
+            actionHeaderCell.innerHTML = 'Action';
+    
+            // Update the alternative rows with the correct number of columns
+            updateAlternativeColumns();
+        }
+
+        function calculateFuzzy() {
+            var criteriaValues = document.getElementsByClassName('criteria-value');
+            var alternativeTableBody = document.getElementById('alternativeTableBody');
+            var alternativeRows = alternativeTableBody.getElementsByTagName('tr');
+            var alternativeValues = alternativeTableBody.getElementsByClassName('alternative-value');
+            var alternativeNames = alternativeTableBody.getElementsByClassName('alternative-name');
+        
+            var fuzzyResults = [];
+        
+            for (var i = 0; i < alternativeRows.length; i++) {
+                var fuzzyResult = 1; // Default fuzzy result
+        
+                // Calculate Fuzzy for criteria
+                for (var j = 0; j < criteriaValues.length; j++) {
+                    var criteriaValue = parseFloat(criteriaValues[j].value);
+                    fuzzyResult *= criteriaValue;
+                }
+        
+                // Calculate Fuzzy for alternatives
+                for (var k = 0; k < alternativeValues.length / alternativeRows.length; k++) {
+                    var alternativeValue = parseFloat(alternativeValues[k + i * (alternativeValues.length / alternativeRows.length)].value);
+                    fuzzyResult *= alternativeValue;
+                }
+        
+                fuzzyResults.push({ index: i, name: alternativeNames[i].value, value: fuzzyResult });
+            }
+        
+            // Sort fuzzy results in descending order
+            fuzzyResults.sort(function (a, b) {
+                return b.value - a.value;
+            });
+        
+            // Display the changed rankings along with their values
+            var rankingTableBody = document.getElementById('rankingTableBody');
+            rankingTableBody.innerHTML = ''; // Clear previous rows
+        
+            for (var i = 0; i < fuzzyResults.length; i++) {
+                var ranking = i + 1;
+                var name = fuzzyResults[i].name;
+                var value = fuzzyResults[i].value.toFixed(4);
+        
+                // Add a new row to the ranking table
+                var newRow = rankingTableBody.insertRow();
+                var cell1 = newRow.insertCell(0);
+                var cell2 = newRow.insertCell(1);
+                var cell3 = newRow.insertCell(2);
+        
+                cell1.textContent = ranking;
+                cell2.textContent = name;
+                cell3.textContent = value;
+            }
+        }
+        
+
+        function backToMenu() {
+            window.location.href = 'index.html#menu';
+        }
+    </script>
+
+</body>
+
+</html>
